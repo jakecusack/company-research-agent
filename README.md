@@ -1,326 +1,138 @@
-[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/pogjester/company-research-agent/blob/main/README.md)
-[![zh](https://img.shields.io/badge/lang-zh-green.svg)](https://github.com/pogjester/company-research-agent/blob/main/README.zh.md)
-[![fr](https://img.shields.io/badge/lang-fr-blue.svg)](https://github.com/pogjester/company-research-agent/blob/main/README.fr.md)
-[![es](https://img.shields.io/badge/lang-es-yellow.svg)](https://github.com/pogjester/company-research-agent/blob/main/README.es.md)
+# Company Research Agent
 
+An agentic research tool that turns a company name into a structured, source-backed briefing. The FastAPI backend coordinates specialized research and synthesis steps; the React interface tracks the job and lets you export the finished report as a PDF.
 
-# Agentic Company Researcher 🔍
+![Company Research Agent landing page](static/app-screenshot.png)
 
-![web ui](<static/ui-1.png>)
+## What it does
 
-A multi-agent tool that generates comprehensive company research reports. The platform uses a pipeline of AI agents to gather, curate, and synthesize information about any company.
+- Researches a company’s business, industry, financial context, and recent news.
+- Uses Tavily search and relevance scoring to find and curate source material.
+- Synthesizes category briefings with Gemini and produces the final report with OpenAI models.
+- Streams research progress to the browser and supports PDF export.
+- Optionally persists jobs and reports in MongoDB.
 
-✨Check it out online! https://companyresearcher.tavily.com ✨
+## Architecture
 
-https://github.com/user-attachments/assets/0e373146-26a7-4391-b973-224ded3182a9
-
-## Features
-
-- **Multi-Source Research**: Gathers data from various sources including company websites, news articles, financial reports, and industry analyses
-- **AI-Powered Content Filtering**: Uses Tavily's relevance scoring for content curation
-- **Real-Time Progress Streaming**: Uses WebSocket connections to stream research progress and results
-- **Dual Model Architecture**: 
-  - Gemini 2.0 Flash for high-context research synthesis
-  - GPT-4.1 for precise report formatting and editing
-- **Modern React Frontend**: Responsive UI with real-time updates, progress tracking, and download options
-- **Modular Architecture**: Built using a pipeline of specialized research and processing nodes
-
-## Agent Framework
-
-### Research Pipeline
-
-The platform follows an agentic framework with specialized nodes that process data sequentially:
-
-1. **Research Nodes**:
-   - `CompanyAnalyzer`: Researches core business information
-   - `IndustryAnalyzer`: Analyzes market position and trends
-   - `FinancialAnalyst`: Gathers financial metrics and performance data
-   - `NewsScanner`: Collects recent news and developments
-
-2. **Processing Nodes**:
-   - `Collector`: Aggregates research data from all analyzers
-   - `Curator`: Implements content filtering and relevance scoring
-   - `Briefing`: Generates category-specific summaries using Gemini 2.0 Flash
-   - `Editor`: Compiles and formats the briefings into a final report using GPT-4.1-mini
-
-   ![web ui](<static/agent-flow.png>)
-
-### Content Generation Architecture
-
-The platform leverages separate models for optimal performance:
-
-1. **Gemini 2.0 Flash** (`briefing.py`):
-   - Handles high-context research synthesis tasks
-   - Excels at processing and summarizing large volumes of data
-   - Used for generating initial category briefings
-   - Efficient at maintaining context across multiple documents
-
-2. **GPT-4.1 mini** (`editor.py`):
-   - Specializes in precise formatting and editing tasks
-   - Handles markdown structure and consistency
-   - Superior at following exact formatting instructions
-   - Used for:
-     - Final report compilation
-     - Content deduplication
-     - Markdown formatting
-     - Real-time report streaming
-
-This approach combines Gemini's strength in handling large context windows with GPT-4.1-mini's precision in following specific formatting instructions.
-
-### Content Curation System
-
-The platform uses a content filtering system in `curator.py`:
-
-1. **Relevance Scoring**:
-   - Documents are scored by Tavily's AI-powered search
-   - A minimum threshold (default 0.4) is required to proceed
-   - Scores reflect relevance to the specific research query
-   - Higher scores indicate better matches to the research intent
-
-2. **Document Processing**:
-   - Content is normalized and cleaned
-   - URLs are deduplicated and standardized
-   - Documents are sorted by relevance scores
-   - Real-time progress updates are sent via WebSocket
-
-### Real-Time Communication System
-
-The platform implements a WebSocket-based real-time communication system:
-
-![web ui](<static/ui-2.png>)
-
-1. **Backend Implementation**:
-   - Uses FastAPI's WebSocket support
-   - Maintains persistent connections per research job
-   - Sends structured status updates for various events:
-     ```python
-     await websocket_manager.send_status_update(
-         job_id=job_id,
-         status="processing",
-         message=f"Generating {category} briefing",
-         result={
-             "step": "Briefing",
-             "category": category,
-             "total_docs": len(docs)
-         }
-     )
-     ```
-
-2. **Frontend Integration**:
-   - React components subscribe to WebSocket updates
-   - Updates are processed and displayed in real-time
-   - Different UI components handle specific update types:
-     - Query generation progress
-     - Document curation statistics
-     - Briefing completion status
-     - Report generation progress
-
-3. **Status Types**:
-   - `query_generating`: Real-time query creation updates
-   - `document_kept`: Document curation progress
-   - `briefing_start/complete`: Briefing generation status
-   - `report_chunk`: Streaming report generation
-   - `curation_complete`: Final document statistics
-
-## Setup
-
-### Quick Setup (Recommended)
-
-The easiest way to get started is using the setup script:
-
-1. Clone the repository:
-```bash
-git clone https://github.com/pogjester/tavily-company-research.git
-cd tavily-company-research
+```text
+React + Vite UI
+      │  POST /research
+      ▼
+FastAPI application
+      │
+      ▼
+Research graph
+  analyzers → collector → curator → briefing → editor
+      │
+      ├── Tavily: research and relevance scoring
+      ├── Gemini: briefing synthesis
+      └── OpenAI: research tasks and final editing
 ```
 
-2. Make the setup script executable and run it:
-```bash
-chmod +x setup.sh
-./setup.sh
-```
+The UI connects to the API with `VITE_API_URL` and receives incremental updates from `GET /research/{job_id}/stream`.
 
-The setup script will:
-- Check for required Python and Node.js versions
-- Optionally create a Python virtual environment (recommended)
-- Install all dependencies (Python and Node.js)
-- Guide you through setting up your environment variables
-- Optionally start both backend and frontend servers
+## Prerequisites
 
-You'll need the following API keys ready:
-- Tavily API Key
-- Google Gemini API Key
-- OpenAI API Key
-- MongoDB URI (optional)
+- Python 3.11 or later
+- Node.js 18 or later
+- Google Gemini and OpenAI API keys for the backend
+- A Tavily API key entered in the app for each research session (or a backend fallback key)
+- A Google Maps API key only if you want location autocomplete
+- MongoDB only if you want persistent jobs and reports
 
-### Manual Setup
+## Run locally
 
-If you prefer to set up manually, follow these steps:
+1. Create a virtual environment and install the backend dependencies:
 
-1. Clone the repository:
-```bash
-git clone https://github.com/pogjester/tavily-company-research.git
-cd tavily-company-research
-```
-
-2. Install backend dependencies:
-```bash
-# Optional: Create and activate virtual environment
-python -m venv .venv
-source .venv/bin/activate
-
-# Install Python dependencies
-pip install -r requirements.txt
-```
-
-3. Install frontend dependencies:
-```bash
-cd ui
-npm install
-```
-
-4. Create a `.env` file with your API keys:
-```env
-TAVILY_API_KEY=your_tavily_key
-GEMINI_API_KEY=your_gemini_key
-OPENAI_API_KEY=your_openai_key
-
-# Optional: Enable MongoDB persistence
-# MONGODB_URI=your_mongodb_connection_string
-```
-
-### Docker Setup
-
-The application can be run using Docker and Docker Compose:
-
-1. Clone the repository:
-```bash
-git clone https://github.com/pogjester/tavily-company-research.git
-cd tavily-company-research
-```
-
-2. Create a `.env` file with your API keys:
-```env
-TAVILY_API_KEY=your_tavily_key
-GEMINI_API_KEY=your_gemini_key
-OPENAI_API_KEY=your_openai_key
-
-# Optional: Enable MongoDB persistence
-# MONGODB_URI=your_mongodb_connection_string
-```
-
-3. Build and start the containers:
-```bash
-docker compose up --build
-```
-
-This will start both the backend and frontend services:
-- Backend API will be available at `http://localhost:8000`
-- Frontend will be available at `http://localhost:5174`
-
-To stop the services:
-```bash
-docker compose down
-```
-
-Note: When updating environment variables in `.env`, you'll need to restart the containers:
-```bash
-docker compose down && docker compose up
-```
-
-### Running the Application
-
-1. Start the backend server (choose one):
-```bash
-# Option 1: Direct Python Module
-python -m application.py
-
-# Option 2: FastAPI with Uvicorn
-uvicorn application:app --reload --port 8000
-```
-
-2. In a new terminal, start the frontend:
-```bash
-cd ui
-npm run dev
-```
-
-3. Access the application at `http://localhost:5173`
-
-## Usage
-
-### Local Development
-
-1. Start the backend server (choose one option):
-
-   **Option 1: Direct Python Module**
    ```bash
-   python -m application.py
+   uv venv .venv
+   uv pip install -r requirements.txt
    ```
 
-   **Option 2: FastAPI with Uvicorn**
-   ```bash
-   # Install uvicorn if not already installed
-   pip install uvicorn
+   If you do not use `uv`, create the environment with `python -m venv .venv` and install with `pip install -r requirements.txt`.
 
-   # Run the FastAPI application with hot reload
-   uvicorn application:app --reload --port 8000
+2. Create `.env` from the example and set the required backend keys:
+
+   ```bash
+   cp .env.example .env
    ```
 
-   The backend will be available at:
-   - API Endpoint: `http://localhost:8000`
-   - WebSocket Endpoint: `ws://localhost:8000/research/ws/{job_id}`
+   ```env
+   GEMINI_API_KEY=your_gemini_key
+   OPENAI_API_KEY=your_openai_key
+   # Optional fallback when no per-session Tavily key is supplied
+   TAVILY_API_KEY=your_tavily_key
+   # MONGODB_URI=optional_mongodb_connection_string
+   ```
 
-2. Start the frontend development server:
+3. Configure the frontend:
+
+   ```bash
+   cp ui/.env.development.example ui/.env.development.local
+   cd ui && npm install && cd ..
+   ```
+
+   Set `VITE_API_URL=http://localhost:8000` in `ui/.env.development.local`. Add `VITE_GOOGLE_MAPS_API_KEY` only when location autocomplete is needed.
+
+4. Start the API in one terminal:
+
+   ```bash
+   .venv/bin/uvicorn application:app --reload --port 8000
+   ```
+
+5. Start the UI in a second terminal:
+
    ```bash
    cd ui
    npm run dev
    ```
 
-3. Access the application at `http://localhost:5173`
+Open [http://localhost:5174](http://localhost:5174). The API is available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-### Deployment Options
+## Docker
 
-The application can be deployed to various cloud platforms. Here are some common options:
+After creating the root `.env` and `ui/.env.development.local` files, run:
 
-#### AWS Elastic Beanstalk
+```bash
+docker compose up --build
+```
 
-1. Install the EB CLI:
-   ```bash
-   pip install awsebcli
-   ```
+This exposes the API on port `8000` and the UI on port `5174`.
 
-2. Initialize EB application:
-   ```bash
-   eb init -p python-3.11 tavily-research
-   ```
+## API
 
-3. Create and deploy:
-   ```bash
-   eb create tavily-research-prod
-   ```
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `POST` | `/research` | Start a research job. |
+| `GET` | `/research/{job_id}/stream` | Receive server-sent progress and completion events. |
+| `GET` | `/research/{job_id}/report` | Retrieve a completed report. |
+| `POST` | `/generate-pdf` | Generate a PDF from report Markdown. |
+| `GET` | `/research/pdf/{filename}` | Download a generated PDF. |
 
-#### Other Deployment Options
+Example request:
 
-- **Docker**: The application includes a Dockerfile for containerized deployment
-- **Heroku**: Deploy directly from GitHub with the Python buildpack
-- **Google Cloud Run**: Suitable for containerized deployment with automatic scaling
+```bash
+curl -X POST http://localhost:8000/research \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "company": "Tavily",
+    "company_url": "https://tavily.com",
+    "industry": "AI search",
+    "hq_location": "New York, USA"
+  }'
+```
 
-Choose the platform that best suits your needs. The application is platform-agnostic and can be hosted anywhere that supports Python web applications.
+## Configuration reference
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+| Variable | Required | Used by |
+| --- | --- | --- |
+| `TAVILY_API_KEY` | No | Backend fallback for research and curation; visitors can supply their own key in the UI |
+| `GEMINI_API_KEY` | Yes | Backend briefing synthesis |
+| `OPENAI_API_KEY` | Yes | Backend research and report editing |
+| `MONGODB_URI` | No | Backend job/report persistence |
+| `VITE_API_URL` | Yes | Frontend API connection |
+| `VITE_GOOGLE_MAPS_API_KEY` | No | Frontend location autocomplete |
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- [Tavily](https://tavily.com/) for the research API
-- All other open-source libraries and their contributors
+[MIT](LICENSE)

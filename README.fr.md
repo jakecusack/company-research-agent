@@ -1,7 +1,9 @@
-[![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/pogjester/company-research-agent/blob/main/README.md)
-[![zh](https://img.shields.io/badge/lang-zh-green.svg)](https://github.com/pogjester/company-research-agent/blob/main/README.zh.md)
-[![fr](https://img.shields.io/badge/lang-fr-blue.svg)](https://github.com/pogjester/company-research-agent/blob/main/README.fr.md)
-[![es](https://img.shields.io/badge/lang-es-yellow.svg)](https://github.com/pogjester/company-research-agent/blob/main/README.es.md)
+ [![en](https://img.shields.io/badge/lang-en-red.svg)](https://github.com/guy-hartstein/company-research-agent/blob/main/README.md)
+[![zh](https://img.shields.io/badge/lang-zh-green.svg)](https://github.com/guy-hartstein/company-research-agent/blob/main/README.zh.md)
+[![fr](https://img.shields.io/badge/lang-fr-blue.svg)](https://github.com/guy-hartstein/company-research-agent/blob/main/README.fr.md)
+[![es](https://img.shields.io/badge/lang-es-yellow.svg)](https://github.com/guy-hartstein/company-research-agent/blob/main/README.es.md)
+[![jp](https://img.shields.io/badge/lang-jp-orange.svg)](https://github.com/guy-hartstein/company-research-agent/blob/main/README.jp.md)
+[![kr](https://img.shields.io/badge/lang-ko-purple.svg)](https://github.com/guy-hartstein/company-research-agent/blob/main/README.kr.md)
 
 
 # Agent de Recherche d'Entreprise 🔍
@@ -18,11 +20,11 @@ https://github.com/user-attachments/assets/0e373146-26a7-4391-b973-224ded3182a9
 
 - **Recherche Multi-Sources** : Récupère des données de diverses sources, y compris les sites web d'entreprise, articles de presse, rapports financiers et analyses sectorielles
 - **Filtrage de contenu par IA** : Utilise le score de pertinence de Tavily pour la curation du contenu
-- **Streaming en temps réel** : Utilise les WebSockets pour diffuser l'avancement et les résultats de la recherche en temps réel
+- **Traitement Asynchrone** : Architecture efficace basée sur le polling pour suivre la progression de la recherche
 - **Architecture à double modèle** :
-  - Gemini 2.0 Flash pour la synthèse de recherche à large contexte
-  - GPT-4.1 pour la mise en forme et l'édition précises du rapport
-- **Frontend React moderne** : Interface réactive avec mises à jour en temps réel, suivi de progression et options de téléchargement
+  - Gemini 2.5 Flash pour la synthèse de recherche à large contexte
+  - GPT-5.1 pour la mise en forme et l'édition précises du rapport
+- **Frontend React moderne** : Interface réactive avec suivi de progression et options de téléchargement
 - **Architecture modulaire** : Construite autour d'un pipeline de nœuds spécialisés de recherche et de traitement
 
 ## Cadre Agentique
@@ -40,8 +42,8 @@ La plateforme suit un cadre agentique avec des nœuds spécialisés qui traitent
 2. **Nœuds de Traitement** :
    - `Collector` : Agrège les données de recherche de tous les analyseurs
    - `Curator` : Met en œuvre le filtrage de contenu et le scoring de pertinence
-   - `Briefing` : Génère des synthèses par catégorie à l'aide de Gemini 2.0 Flash
-   - `Editor` : Compile et met en forme les synthèses dans un rapport final avec GPT-4.1-mini
+   - `Briefing` : Génère des synthèses par catégorie à l'aide de Gemini 2.5 Flash
+   - `Editor` : Compile et met en forme les synthèses dans un rapport final avec GPT-5.1
 
    ![web ui](<static/agent-flow.png>)
 
@@ -49,13 +51,13 @@ La plateforme suit un cadre agentique avec des nœuds spécialisés qui traitent
 
 La plateforme exploite des modèles distincts pour des performances optimales :
 
-1. **Gemini 2.0 Flash** (`briefing.py`) :
+1. **Gemini 2.5 Flash** (`briefing.py`) :
    - Gère la synthèse de recherche à large contexte
    - Excelle dans le traitement et le résumé de grands volumes de données
    - Utilisé pour générer les synthèses initiales par catégorie
    - Efficace pour maintenir le contexte sur plusieurs documents
 
-2. **GPT-4.1 mini** (`editor.py`) :
+2. **GPT-5.1** (`editor.py`) :
    - Spécialisé dans la mise en forme et l'édition précises
    - Gère la structure markdown et la cohérence
    - Supérieur pour suivre des instructions de formatage exactes
@@ -65,7 +67,7 @@ La plateforme exploite des modèles distincts pour des performances optimales :
      - Mise en forme markdown
      - Streaming du rapport en temps réel
 
-Cette approche combine la capacité de Gemini à gérer de larges fenêtres de contexte avec la précision de GPT-4.1-mini pour le respect des consignes de formatage.
+Cette approche combine la capacité de Gemini à gérer de larges fenêtres de contexte avec la précision de GPT-5.1 pour le respect des consignes de formatage.
 
 ### Système de Curation de Contenu
 
@@ -81,57 +83,41 @@ La plateforme utilise un système de filtrage de contenu dans `curator.py` :
    - Le contenu est normalisé et nettoyé
    - Les URLs sont dédupliquées et standardisées
    - Les documents sont triés par score de pertinence
-   - Les mises à jour de progression sont envoyées en temps réel via WebSocket
+   - La recherche s'exécute de manière asynchrone en arrière-plan
 
-### Système de Communication en Temps Réel
+### Architecture Backend
 
-La plateforme implémente un système de communication en temps réel basé sur WebSocket :
+La plateforme implémente un système de communication simple basé sur le polling :
 
 ![web ui](<static/ui-2.png>)
 
 1. **Implémentation Backend** :
-   - Utilise le support WebSocket de FastAPI
-   - Maintient des connexions persistantes par tâche de recherche
-   - Envoie des mises à jour structurées pour divers événements :
-     ```python
-     await websocket_manager.send_status_update(
-         job_id=job_id,
-         status="processing",
-         message=f"Génération du briefing {category}",
-         result={
-             "step": "Briefing",
-             "category": category,
-             "total_docs": len(docs)
-         }
-     )
-     ```
-
+   - Utilise FastAPI avec support asynchrone
+   - Les tâches de recherche s'exécutent en arrière-plan
+   - Les résultats sont stockés et accessibles via des endpoints REST
+   - Suivi simple de l'état des tâches
+   
 2. **Intégration Frontend** :
-   - Les composants React s'abonnent aux mises à jour WebSocket
-   - Les mises à jour sont traitées et affichées en temps réel
-   - Différents composants UI gèrent des types d'updates spécifiques :
-     - Progression de la génération de requête
-     - Statistiques de curation de documents
-     - Statut de complétion des briefings
-     - Progression de la génération du rapport
+   - Le frontend React soumet des demandes de recherche
+   - Reçoit un job_id pour le suivi
+   - Effectue un polling sur l'endpoint `/research/{job_id}/report`
+   - Affiche le rapport final une fois terminé
 
-3. **Types de Statut** :
-   - `query_generating` : Mises à jour de création de requête en temps réel
-   - `document_kept` : Progression de la curation de documents
-   - `briefing_start/complete` : Statut de génération des briefings
-   - `report_chunk` : Streaming de la génération du rapport
-   - `curation_complete` : Statistiques finales des documents
+3. **Endpoints de l'API** :
+   - `POST /research` : Soumettre une nouvelle demande de recherche
+   - `GET /research/{job_id}/report` : Polling pour le rapport terminé
+   - `POST /generate-pdf` : Générer un PDF du contenu du rapport
 
 ## Configuration
 
 ### Configuration Rapide (Recommandée)
 
-La façon la plus simple de commencer est d'utiliser le script de configuration :
+La façon la plus simple de commencer est d'utiliser le script de configuration, qui détecte automatiquement et utilise `uv` pour une installation plus rapide des paquets Python lorsqu'il est disponible :
 
 1. Clonez le dépôt :
 ```bash
-git clone https://github.com/pogjester/tavily-company-research.git
-cd tavily-company-research
+git clone https://github.com/guy-hartstein/company-research-agent.git
+cd company-research-agent
 ```
 
 2. Rendez le script de configuration exécutable et lancez-le :
@@ -141,16 +127,26 @@ chmod +x setup.sh
 ```
 
 Le script de configuration va :
+
+- Détecter et utiliser `uv` pour une installation plus rapide des paquets Python (si disponible)
 - Vérifier les versions requises de Python et Node.js
 - Créer éventuellement un environnement virtuel Python (recommandé)
 - Installer toutes les dépendances (Python et Node.js)
 - Vous guider dans la configuration de vos variables d'environnement
 - Démarrer éventuellement les serveurs backend et frontend
 
+> **💡 Conseil Pro** : Installez [uv](https://github.com/astral-sh/uv) pour une installation significativement plus rapide des paquets Python :
+>
+> ```bash
+> curl -LsSf https://astral.sh/uv/install.sh | sh
+> ```
+
 Vous aurez besoin des clés API suivantes :
+
 - Clé API Tavily
 - Clé API Google Gemini
 - Clé API OpenAI
+- Clé API Google Maps
 - URI MongoDB (optionnel)
 
 ### Configuration Manuelle
@@ -158,28 +154,47 @@ Vous aurez besoin des clés API suivantes :
 Si vous préférez configurer manuellement, suivez ces étapes :
 
 1. Clonez le dépôt :
+
 ```bash
-git clone https://github.com/pogjester/tavily-company-research.git
-cd tavily-company-research
+git clone https://github.com/guy-hartstein/company-research-agent.git
+cd company-research-agent
 ```
 
 2. Installez les dépendances backend :
+
 ```bash
 # Optionnel : Créez et activez un environnement virtuel
-python -m venv .venv
+# Avec uv (plus rapide - recommandé si disponible) :
+uv venv .venv
 source .venv/bin/activate
 
+# Ou avec Python standard :
+# python -m venv .venv
+# source .venv/bin/activate
+
 # Installez les dépendances Python
-pip install -r requirements.txt
+# Avec uv (plus rapide) :
+uv pip install -r requirements.txt
+
+# Ou avec pip :
+# pip install -r requirements.txt
 ```
 
 3. Installez les dépendances frontend :
+
 ```bash
 cd ui
 npm install
 ```
 
-4. Créez un fichier `.env` avec vos clés API :
+4. **Configuration des Variables d'Environnement** :
+
+Ce projet nécessite deux fichiers `.env` séparés pour le backend et le frontend.
+
+**Configuration Backend :**
+
+Créez un fichier `.env` dans le répertoire racine du projet et ajoutez vos clés API backend :
+
 ```env
 TAVILY_API_KEY=votre_clé_tavily
 GEMINI_API_KEY=votre_clé_gemini
@@ -187,6 +202,21 @@ OPENAI_API_KEY=votre_clé_openai
 
 # Optionnel : Activez la persistance MongoDB
 # MONGODB_URI=votre_chaîne_de_connexion_mongodb
+```
+
+**Configuration Frontend :**
+
+Créez un fichier `.env` dans le répertoire `ui`. Vous pouvez d'abord copier le fichier d'exemple :
+
+```bash
+cp ui/.env.development.example ui/.env
+```
+
+Puis, ouvrez `ui/.env` et ajoutez vos variables d'environnement frontend :
+
+```env
+VITE_API_URL=http://localhost:8000
+VITE_GOOGLE_MAPS_API_KEY=votre_clé_google_maps_ici
 ```
 
 ### Configuration Docker
@@ -194,12 +224,20 @@ OPENAI_API_KEY=votre_clé_openai
 L'application peut être exécutée à l'aide de Docker et Docker Compose :
 
 1. Clonez le dépôt :
+
 ```bash
-git clone https://github.com/pogjester/tavily-company-research.git
-cd tavily-company-research
+git clone https://github.com/guy-hartstein/company-research-agent.git
+cd company-research-agent
 ```
 
-2. Créez un fichier `.env` avec vos clés API :
+2. **Configuration des Variables d'Environnement** :
+
+La configuration Docker utilise deux fichiers `.env` séparés.
+
+**Configuration Backend :**
+
+Créez un fichier `.env` dans le répertoire racine du projet et ajoutez vos clés API backend :
+
 ```env
 TAVILY_API_KEY=votre_clé_tavily
 GEMINI_API_KEY=votre_clé_gemini
@@ -209,21 +247,40 @@ OPENAI_API_KEY=votre_clé_openai
 # MONGODB_URI=votre_chaîne_de_connexion_mongodb
 ```
 
+**Configuration Frontend :**
+
+Créez un fichier `.env` dans le répertoire `ui`. Vous pouvez d'abord copier le fichier d'exemple :
+
+```bash
+cp ui/.env.development.example ui/.env
+```
+
+Puis, ouvrez `ui/.env` et ajoutez vos variables d'environnement frontend :
+
+```env
+VITE_API_URL=http://localhost:8000
+VITE_GOOGLE_MAPS_API_KEY=votre_clé_google_maps_ici
+```
+
 3. Construisez et démarrez les conteneurs :
+
 ```bash
 docker compose up --build
 ```
 
 Cela démarrera les services backend et frontend :
+
 - L'API backend sera disponible sur `http://localhost:8000`
 - Le frontend sera disponible sur `http://localhost:5174`
 
 Pour arrêter les services :
+
 ```bash
 docker compose down
 ```
 
 Remarque : Lors de la mise à jour des variables d'environnement dans `.env`, vous devrez redémarrer les conteneurs :
+
 ```bash
 docker compose down && docker compose up
 ```
@@ -231,6 +288,7 @@ docker compose down && docker compose up
 ### Exécution de l'Application
 
 1. Démarrez le serveur backend (choisissez une option) :
+
 ```bash
 # Option 1 : Module Python Direct
 python -m application.py
@@ -240,6 +298,7 @@ uvicorn application:app --reload --port 8000
 ```
 
 2. Dans un nouveau terminal, démarrez le frontend :
+
 ```bash
 cd ui
 npm run dev
@@ -254,14 +313,19 @@ npm run dev
 1. Démarrez le serveur backend (choisissez une option) :
 
    **Option 1 : Module Python Direct**
+
    ```bash
    python -m application.py
    ```
 
    **Option 2 : FastAPI avec Uvicorn**
+
    ```bash
    # Installez uvicorn si ce n'est pas déjà fait
-   pip install uvicorn
+   # Avec uv (plus rapide) :
+   uv pip install uvicorn
+   # Ou avec pip :
+   # pip install uvicorn
 
    # Exécutez l'application FastAPI avec rechargement à chaud
    uvicorn application:app --reload --port 8000
@@ -269,9 +333,9 @@ npm run dev
 
    Le backend sera disponible sur :
    - Point d'accès API : `http://localhost:8000`
-   - Point d'accès WebSocket : `ws://localhost:8000/research/ws/{job_id}`
 
 2. Démarrez le serveur de développement frontend :
+
    ```bash
    cd ui
    npm run dev
@@ -279,48 +343,14 @@ npm run dev
 
 3. Accédez à l'application sur `http://localhost:5173`
 
-### Options de Déploiement
+> **⚡ Note de Performance** : Si vous avez utilisé `uv` lors de l'installation, vous bénéficierez d'une installation de paquets et d'une résolution de dépendances significativement plus rapides. `uv` est un gestionnaire de paquets Python moderne écrit en Rust qui peut être 10 à 100 fois plus rapide que pip.
 
-L'application peut être déployée sur diverses plateformes cloud. Voici quelques options courantes :
+## Star History
 
-#### AWS Elastic Beanstalk
-
-1. Installez l'EB CLI :
-   ```bash
-   pip install awsebcli
-   ```
-
-2. Initialisez l'application EB :
-   ```bash
-   eb init -p python-3.11 tavily-research
-   ```
-
-3. Créez et déployez :
-   ```bash
-   eb create tavily-research-prod
-   ```
-
-#### Autres Options de Déploiement
-
-- **Docker** : L'application inclut un Dockerfile pour le déploiement conteneurisé
-- **Heroku** : Déployez directement depuis GitHub avec le buildpack Python
-- **Google Cloud Run** : Adapté au déploiement conteneurisé avec mise à l'échelle automatique
-
-Choisissez la plateforme qui convient le mieux à vos besoins. L'application est indépendante de la plateforme et peut être hébergée partout où les applications web Python sont prises en charge.
-
-## Contribution
-
-1. Forkez le dépôt
-2. Créez une branche de fonctionnalité (`git checkout -b fonctionnalite/superbe-fonction`)
-3. Validez vos modifications (`git commit -m 'Ajout d'une superbe fonction'`)
-4. Poussez vers la branche (`git push origin fonctionnalite/superbe-fonction`)
-5. Ouvrez une Pull Request
-
-## Licence
-
-Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
-## Remerciements
-
-- [Tavily](https://tavily.com/) pour l'API de recherche
-- Toutes les autres bibliothèques open-source et leurs contributeurs
+<a href="https://www.star-history.com/?repos=guy-hartstein%2Fcompany-research-agent&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=guy-hartstein/company-research-agent&type=date&theme=dark&legend=top-left&sealed_token=rVZ57B-p9qQLLTRRBDp35rtvlnI4AXK1HGSdEKraUS5xKABI__fDDwbOQ4DFxHDbSg5kT5whU7PRExyQTS9q2w-f_eICUpXxRSnQc9iUyggTJ3DFpFLrB6BrvfoLkprVCxCQhFyO6So8KZJ24DxC0_7OPdgg5jK3JPyXYmbRa8Zt91A-g90ua2UgtvBA" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=guy-hartstein/company-research-agent&type=date&legend=top-left&sealed_token=rVZ57B-p9qQLLTRRBDp35rtvlnI4AXK1HGSdEKraUS5xKABI__fDDwbOQ4DFxHDbSg5kT5whU7PRExyQTS9q2w-f_eICUpXxRSnQc9iUyggTJ3DFpFLrB6BrvfoLkprVCxCQhFyO6So8KZJ24DxC0_7OPdgg5jK3JPyXYmbRa8Zt91A-g90ua2UgtvBA" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=guy-hartstein/company-research-agent&type=date&legend=top-left&sealed_token=rVZ57B-p9qQLLTRRBDp35rtvlnI4AXK1HGSdEKraUS5xKABI__fDDwbOQ4DFxHDbSg5kT5whU7PRExyQTS9q2w-f_eICUpXxRSnQc9iUyggTJ3DFpFLrB6BrvfoLkprVCxCQhFyO6So8KZJ24DxC0_7OPdgg5jK3JPyXYmbRa8Zt91A-g90ua2UgtvBA" />
+ </picture>
+</a>

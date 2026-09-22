@@ -1,12 +1,6 @@
-import React from 'react';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
-
-type EnrichmentCounts = {
-  company: { total: number; enriched: number };
-  industry: { total: number; enriched: number };
-  financial: { total: number; enriched: number };
-  news: { total: number; enriched: number };
-};
+import type { EnrichmentCounts } from '../types';
+import { glassStyle } from '../styles';
 
 interface CurationExtractionProps {
   enrichmentCounts: EnrichmentCounts | undefined;
@@ -16,19 +10,16 @@ interface CurationExtractionProps {
   loaderColor: string;
 }
 
-const CurationExtraction: React.FC<CurationExtractionProps> = ({
+const CurationExtraction = ({
   enrichmentCounts,
   isExpanded,
   onToggleExpand,
   isResetting,
   loaderColor
-}) => {
-  const glassStyle = "backdrop-filter backdrop-blur-lg bg-white/80 border border-gray-200 shadow-xl";
-  const glassCardStyle = `${glassStyle} rounded-2xl p-6`;
-
+}: CurationExtractionProps) => {
   return (
     <div 
-      className={`${glassCardStyle} transition-all duration-300 ease-in-out ${
+      className={`${glassStyle.card} transition-all duration-300 ease-in-out ${
         isResetting ? 'opacity-0 transform -translate-y-4' : 'opacity-100 transform translate-y-0'
       }`}
     >
@@ -51,7 +42,7 @@ const CurationExtraction: React.FC<CurationExtractionProps> = ({
       <div className={`overflow-hidden transition-all duration-500 ease-in-out ${
         isExpanded ? 'mt-4 max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
       }`}>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {['company', 'industry', 'financial', 'news'].map((category) => {
             const counts = enrichmentCounts?.[category as keyof EnrichmentCounts];
             return (
@@ -60,7 +51,7 @@ const CurationExtraction: React.FC<CurationExtractionProps> = ({
                 <div className="text-gray-900">
                   <div className="text-2xl font-bold mb-1">
                     {counts ? (
-                      <span className="text-[#468BFF]">
+                      <span className="text-[#2677FF]">
                         {counts.enriched}
                       </span>
                     ) : (

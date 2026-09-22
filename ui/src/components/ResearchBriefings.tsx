@@ -1,5 +1,5 @@
-import React from 'react';
 import { ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { glassStyle } from '../styles';
 
 type BriefingStatus = {
   company: boolean;
@@ -15,20 +15,17 @@ interface ResearchBriefingsProps {
   isResetting: boolean;
 }
 
-const ResearchBriefings: React.FC<ResearchBriefingsProps> = ({
+const ResearchBriefings = ({
   briefingStatus,
   isExpanded,
   onToggleExpand,
   isResetting
-}) => {
-  const glassStyle = "backdrop-filter backdrop-blur-lg bg-white/80 border border-gray-200 shadow-xl";
-  const cardGlassStyle = "backdrop-filter backdrop-blur-lg bg-white/80 shadow-sm";
-
+}: ResearchBriefingsProps) => {
   return (
     <div 
-      className={`${glassStyle} rounded-2xl p-6 transition-all duration-300 ease-in-out ${
+      className={`${glassStyle.card} transition-all duration-300 ease-in-out ${
         isResetting ? 'opacity-0 transform -translate-y-4' : 'opacity-100 transform translate-y-0'
-      } font-['DM_Sans']`}
+      } font-sans`}
     >
       <div 
         className="flex items-center justify-between cursor-pointer"
@@ -53,9 +50,9 @@ const ResearchBriefings: React.FC<ResearchBriefingsProps> = ({
           {['company', 'industry', 'financial', 'news'].map((category) => (
             <div 
               key={category} 
-              className={`${cardGlassStyle} rounded-lg p-4 transition-all duration-500 ease-in-out relative ${
+              className={`backdrop-filter backdrop-blur-lg bg-white/80 shadow-sm rounded-lg p-4 transition-all duration-500 ease-in-out relative ${
                 briefingStatus[category as keyof BriefingStatus] 
-                  ? 'border border-[#468BFF] bg-gradient-to-br from-[#468BFF]/5 to-[#468BFF]/10 shadow-md' 
+                  ? 'border border-[#2677FF] bg-gradient-to-br from-[#2677FF]/5 to-[#2677FF]/10 shadow-md'
                   : 'border border-gray-200 bg-white/80 hover:border-gray-300 hover:shadow-sm'
               } backdrop-blur-sm group`}
             >
@@ -70,11 +67,11 @@ const ResearchBriefings: React.FC<ResearchBriefingsProps> = ({
               <div className="relative z-10 flex items-center justify-between">
                 <h3 className={`text-sm font-medium capitalize transition-all duration-500 ${
                   briefingStatus[category as keyof BriefingStatus]
-                    ? 'text-[#468BFF]'
+                    ? 'text-[#2677FF]'
                     : 'text-gray-700 group-hover:text-gray-900'
                 }`}>{category}</h3>
                 {briefingStatus[category as keyof BriefingStatus] ? (
-                  <CheckCircle2 className="h-4 w-4 text-[#468BFF] transition-all duration-300" />
+                  <CheckCircle2 className="h-4 w-4 text-[#2677FF] transition-all duration-300" />
                 ) : (
                   <div className="h-4 w-4 rounded-full border border-gray-200 group-hover:border-gray-300 transition-all duration-300"></div>
                 )}

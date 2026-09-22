@@ -1,21 +1,20 @@
-import React from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { ResearchQueriesProps } from '../types';
+import type { ResearchQueriesProps } from '../types';
+import { fadeInAnimation } from '../styles';
 
-const ResearchQueries: React.FC<ResearchQueriesProps> = ({
+const ResearchQueries = ({
   queries,
   streamingQueries,
   isExpanded,
   onToggleExpand,
   isResetting,
   glassStyle
-}) => {
+}: ResearchQueriesProps) => {
   const glassCardStyle = `${glassStyle} rounded-2xl p-6`;
-  const fadeInAnimation = "transition-all duration-300 ease-in-out";
 
   return (
     <div 
-      className={`${glassCardStyle} ${fadeInAnimation} ${isResetting ? 'opacity-0 transform -translate-y-4' : 'opacity-100 transform translate-y-0'} font-['DM_Sans']`}
+      className={`${glassCardStyle} ${fadeInAnimation.fadeIn} ${isResetting ? 'opacity-0 transform -translate-y-4' : 'opacity-100 transform translate-y-0'} font-sans`}
     >
       <div 
         className="flex items-center justify-between cursor-pointer"
@@ -47,7 +46,7 @@ const ResearchQueries: React.FC<ResearchQueriesProps> = ({
                 {Object.entries(streamingQueries)
                   .filter(([key]) => key.startsWith(category))
                   .map(([key, query]) => (
-                    <div key={key} className="backdrop-filter backdrop-blur-lg bg-white/80 border border-[#468BFF]/30 rounded-lg p-2">
+                    <div key={key} className="backdrop-filter backdrop-blur-lg bg-white/80 border border-[#2677FF]/30 rounded-lg p-2">
                       <span className="text-gray-600">{query.text}</span>
                       <span className="animate-pulse ml-1 text-[#8FBCFA]">|</span>
                     </div>

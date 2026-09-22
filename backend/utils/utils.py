@@ -1,25 +1,20 @@
 import logging
 import os
 import re
-from typing import List, Dict
-from reportlab.lib.pagesizes import letter
+from typing import Dict, List
+
 from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
-from .references import extract_domain_name
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import (
+    ListFlowable,
+    ListItem,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+)
 
-
-def extract_title_from_url_path(url: str) -> str:
-    """Extract a title from a URL path."""
-    parts = url.rstrip('/').split('/')
-    return parts[-1] if parts else 'No title found'
-
-def extract_link_info(markdown_link: str) -> tuple[str, str]:
-    """Extract text and URL from a Markdown link [text](URL)."""
-    match = re.match(r'\[(.*?)\]\((.*?)\)', markdown_link)
-    if match:
-        return match.group(1), match.group(2)
-    return ("", "")
+from .references import extract_link_info
 
 logger = logging.getLogger(__name__)
 
@@ -225,12 +220,6 @@ def generate_pdf_from_md(markdown_content: str, output_pdf) -> None:
         logger.error(error_msg)
         raise Exception(error_msg)
 
-# Example usage (uncomment if you want to run directly):
-# if __name__ == '__main__':
-#     with open('example.md', 'r', encoding='utf-8') as f:
-#         md_text = f.read()
-#     generate_pdf_from_md(md_text, 'output.pdf')
-
 def convert_markdown_to_pdf_elements(markdown_text: str, custom_styles: Dict) -> List:
     """
     Example function that converts a Markdown string into a list of
@@ -239,7 +228,6 @@ def convert_markdown_to_pdf_elements(markdown_text: str, custom_styles: Dict) ->
     story = []
     current_list_items = []
     in_list = False
-    in_references = False
 
     lines = markdown_text.split('\n')
     i = 0
@@ -320,11 +308,6 @@ def convert_markdown_to_pdf_elements(markdown_text: str, custom_styles: Dict) ->
             style_name = f'Heading{heading_level}'
             # Use an existing style or a custom style
             story.append(Paragraph(heading_text, custom_styles.get(style_name, custom_styles['BodyText'])))
-
-            if heading_text.lower() == 'references':
-                in_references = True
-            else:
-                in_references = False
             i += 1
             continue
 

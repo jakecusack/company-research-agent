@@ -1,94 +1,56 @@
 from langchain_core.messages import AIMessage
-from typing import Dict, Any
+
 from ...classes import ResearchState
+from ...prompts import INDUSTRY_ANALYZER_QUERY_PROMPT
 from .base import BaseResearcher
 
+
 class IndustryAnalyzer(BaseResearcher):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, tavily_api_key: str | None = None) -> None:
+        super().__init__(tavily_api_key)
         self.analyst_type = "industry_analyzer"
 
-    async def analyze(self, state: ResearchState) -> Dict[str, Any]:
+    async def analyze(self, state: ResearchState):
+        """Analyze industry and yield events"""
         company = state.get('company', 'Unknown Company')
         industry = state.get('industry', 'Unknown Industry')
-        msg = [f"🏭 Industry Analyzer analyzing {company} in {industry}"]
         
-        # Generate search queries using LLM
-        queries = await self.generate_queries(state, """
-        Generate queries on the industry analysis of {company} in the {industry} industry such as:
-        - Market position
-        - Competitors
-        - {industry} industry trends and challenges
-        - Market size and growth
-        """)
-
+        # Generate search queries and yield events
+        queries = []
+        async for event in self.generate_queries(state, INDUSTRY_ANALYZER_QUERY_PROMPT):
+            yield event
+            if event.get("type") == "queries_complete":
+                queries = event.get("queries", [])
+        
+        # Log subqueries
         subqueries_msg = "🔍 Subqueries for industry analysis:\n" + "\n".join([f"• {query}" for query in queries])
-        messages = state.get('messages', [])
-        messages.append(AIMessage(content=subqueries_msg))
-        state['messages'] = messages
-
-        # Send queries through WebSocket
-        if websocket_manager := state.get('websocket_manager'):
-            if job_id := state.get('job_id'):
-                await websocket_manager.send_status_update(
-                    job_id=job_id,
-                    status="processing",
-                    message=f"Industry analysis queries generated",
-                    result={
-                        "step": "Industry Analyst",
-                        "analyst_type": "Industry Analyst",
-                        "queries": queries
-                    }
-                )
+        state.setdefault('messages', []).append(AIMessage(content=subqueries_msg))
         
-        industry_data = {}
+        # Start with site scrape data
+        industry_data = dict(state.get('site_scrape', {}))
         
-        # If we have site_scrape data, include it first
-        if site_scrape := state.get('site_scrape'):
-            msg.append("\n📊 Including site scrape data in company analysis...")
-            company_url = state.get('company_url', 'company-website')
-            industry_data[company_url] = {
-                'title': state.get('company', 'Unknown Company'),
-                'raw_content': site_scrape,
-                'query': f'Industry analysis on {company}'  # Add a default query for site scrape
-            }
+        # Search and merge documents, yielding events
+        documents = {}
+        async for event in self.search_documents(state, queries):
+            yield event
+            if event.get("type") == "search_complete":
+                documents = event.get("merged_docs", {})
         
-        # Perform additional research with increased search depth
-        try:
-            # Store documents with their respective queries
-            for query in queries:
-                documents = await self.search_documents(state, [query])
-                if documents:  # Only process if we got results
-                    for url, doc in documents.items():
-                        doc['query'] = query  # Associate each document with its query
-                        industry_data[url] = doc
-            
-            msg.append(f"\n✓ Found {len(industry_data)} documents")
-            if websocket_manager := state.get('websocket_manager'):
-                if job_id := state.get('job_id'):
-                    await websocket_manager.send_status_update(
-                        job_id=job_id,
-                        status="processing",
-                        message=f"Used Tavily Search to find {len(industry_data)} documents",
-                        result={
-                            "step": "Searching",
-                            "analyst_type": "Industry Analyst",
-                            "queries": queries
-                        }
-                    )
-        except Exception as e:
-            msg.append(f"\n⚠️ Error during research: {str(e)}")
+        industry_data.update(documents)
         
-        # Update state with our findings
-        messages = state.get('messages', [])
-        messages.append(AIMessage(content="\n".join(msg)))
-        state['messages'] = messages
+        # Update state
+        completion_msg = f"🏭 Industry Analyzer found {len(industry_data)} documents for {company} in {industry}"
+        state.setdefault('messages', []).append(AIMessage(content=completion_msg))
         state['industry_data'] = industry_data
         
-        return {
-            'message': msg,
-            'industry_data': industry_data
-        }
+        yield {"type": "analysis_complete", "data_type": "industry_data", "count": len(industry_data)}
+        yield {'message': [completion_msg], 'industry_data': industry_data}
 
-    async def run(self, state: ResearchState) -> Dict[str, Any]:
-        return await self.analyze(state) 
+    async def run(self, state: ResearchState):
+        """Run analysis and yield all events"""
+        result = None
+        async for event in self.analyze(state):
+            yield event
+            if "message" in event or "industry_data" in event:
+                result = event
+        yield result or {}
